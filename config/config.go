@@ -9,10 +9,15 @@ import (
 )
 
 type Config struct {
+	ServerAddr       string
 	ShortlinkService services.ShortlinkServiceInterface
 }
 
 func LoadConfig() *Config {
+	serverAddr := os.Getenv("SERVER_ADDR")
+	if serverAddr == "" {
+		serverAddr = ":8080"
+	}
 	addr := os.Getenv("APP_REDIS_ADDR")
 	if addr == "" {
 		addr = "localhost:6379"
@@ -32,5 +37,8 @@ func LoadConfig() *Config {
 	log.Println("connecting to redis")
 
 	s := services.NewShortlinkService(addr, password, db)
-	return &Config{ShortlinkService: s}
+	return &Config{
+		ServerAddr:       serverAddr,
+		ShortlinkService: s,
+	}
 }

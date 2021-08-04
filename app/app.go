@@ -28,8 +28,8 @@ func (app *App) initializeRoutes() {
 	app.Router.GET("/:shortlink", app.redirect)
 }
 
-func (app *App) Run(addr string) {
-	log.Fatal(app.Router.Run(addr))
+func (app *App) Run() {
+	log.Fatal(app.Router.Run(app.Config.ServerAddr))
 }
 
 func (app *App) ping(c *gin.Context) {
