@@ -1,0 +1,28 @@
+version: "3.9"
+
+networks:
+  app-tier:
+    driver: bridge
+
+services:
+  redis:
+    image: bitnami/redis:6.2.3
+    environment:
+      # ALLOW_EMPTY_PASSWORD is recommended only for development.
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+      - REDIS_AOF_ENABLED=no
+    networks:
+      - app-tier
+  go-url-shortener:
+    depends_on:
+      - redis
+    build: .
+    ports: 
+      - '8080:8080'
+    environment:
+      - APP_REDIS_ADDR=redis:6379
+      - APP_REDIS_PASSWORD=
+      - APP_REDIS_DB=0
+    networks:
+      - app-tier
