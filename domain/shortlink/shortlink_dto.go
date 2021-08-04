@@ -5,6 +5,10 @@ import (
 	"gopkg.in/validator.v2"
 )
 
+type EncodedID struct {
+	Shortlink string `uri:"shortlink" binding:"required"`
+}
+
 type ShortenRequest struct {
 	URL string `json:"url" validate:"nonzero"`
 }

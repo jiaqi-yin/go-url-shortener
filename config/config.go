@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	S services.ShortlinkServiceInterface
+	ShortlinkService services.ShortlinkServiceInterface
 }
 
 func LoadConfig() *Config {
@@ -31,6 +31,6 @@ func LoadConfig() *Config {
 	}
 	log.Println("connecting to redis")
 
-	c := services.NewRedisCli(addr, password, db)
-	return &Config{S: c}
+	s := services.NewShortlinkService(addr, password, db)
+	return &Config{ShortlinkService: s}
 }

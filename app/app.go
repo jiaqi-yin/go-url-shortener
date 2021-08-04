@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jiaqi-yin/go-url-shortener/config"
-	"github.com/jiaqi-yin/go-url-shortener/controllers/ping"
 	"github.com/jiaqi-yin/go-url-shortener/domain/shortlink"
 	"github.com/jiaqi-yin/go-url-shortener/utils"
 )
@@ -23,18 +22,19 @@ func (app *App) Init() {
 	app.initializeRoutes()
 }
 
-type EncodedID struct {
-	Shortlink string `uri:"shortlink" binding:"required"`
-}
-
 func (app *App) initializeRoutes() {
-	app.Router.GET("/ping", ping.PingController.Ping)
+	app.Router.GET("/ping", app.ping)
 	app.Router.POST("/api/shorten", app.createShortlink)
-	app.Router.GET("/:shortlink", app.unshorten)
+	app.Router.GET("/:shortlink", app.redirect)
 }
 
 func (app *App) Run(addr string) {
 	log.Fatal(app.Router.Run(addr))
+}
+
+func (app *App) ping(c *gin.Context) {
+	c.String(http.StatusOK, "pong")
+	return
 }
 
 func (app *App) createShortlink(c *gin.Context) {
@@ -50,7 +50,7 @@ func (app *App) createShortlink(c *gin.Context) {
 		return
 	}
 
-	eid, err := app.Config.S.Shorten(req.URL)
+	eid, err := app.Config.ShortlinkService.Shorten(req.URL)
 	if err != nil {
 		c.JSON(err.Status(), err)
 		return
@@ -60,8 +60,8 @@ func (app *App) createShortlink(c *gin.Context) {
 	return
 }
 
-func (app *App) unshorten(c *gin.Context) {
-	var eid EncodedID
+func (app *App) redirect(c *gin.Context) {
+	var eid shortlink.EncodedID
 	if err := c.ShouldBindUri(&eid); err != nil {
 		restErr := utils.NewBadRequestError("cannot bind uri")
 		c.JSON(restErr.Status(), restErr)
@@ -75,7 +75,7 @@ func (app *App) unshorten(c *gin.Context) {
 		return
 	}
 
-	url, err := app.Config.S.Unshorten(eid.Shortlink)
+	url, err := app.Config.ShortlinkService.Unshorten(eid.Shortlink)
 	if err != nil {
 		c.JSON(err.Status(), err)
 		return

@@ -2,9 +2,7 @@ package services
 
 import (
 	"context"
-	"crypto/sha1"
 	"fmt"
-	"log"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/jiaqi-yin/go-url-shortener/utils"
@@ -22,11 +20,11 @@ type ShortlinkServiceInterface interface {
 	Unshorten(string) (string, utils.RestErr)
 }
 
-type RedisCli struct {
+type ShortlinkService struct {
 	Cli *redis.Client
 }
 
-func NewRedisCli(addr string, password string, db int) *RedisCli {
+func NewShortlinkService(addr string, password string, db int) *ShortlinkService {
 	ctx := context.Background()
 	c := redis.NewClient(&redis.Options{
 		Addr:     addr,
@@ -37,20 +35,14 @@ func NewRedisCli(addr string, password string, db int) *RedisCli {
 		panic(err)
 	}
 
-	return &RedisCli{Cli: c}
+	return &ShortlinkService{Cli: c}
 }
 
-func toSha1(s string) string {
-	h := sha1.New()
-	h.Write([]byte(s))
-	return fmt.Sprintf("%x", string(h.Sum(nil)))
-}
-
-func (rc *RedisCli) Shorten(url string) (string, utils.RestErr) {
-	h := toSha1(url)
+func (s *ShortlinkService) Shorten(url string) (string, utils.RestErr) {
+	h := utils.ToSha1(url)
 
 	ctx := context.Background()
-	d, err := rc.Cli.Get(ctx, fmt.Sprintf(URLHashKey, h)).Result()
+	d, err := s.Cli.Get(ctx, fmt.Sprintf(URLHashKey, h)).Result()
 	if err == redis.Nil {
 		// Do nothing
 	} else if err != nil {
@@ -63,23 +55,23 @@ func (rc *RedisCli) Shorten(url string) (string, utils.RestErr) {
 		}
 	}
 
-	err = rc.Cli.Incr(ctx, URLIDKEY).Err()
+	err = s.Cli.Incr(ctx, URLIDKEY).Err()
 	if err != nil {
 		return "", utils.NewInternalServerError(err.Error())
 	}
 
-	id, err := rc.Cli.Get(ctx, URLIDKEY).Int64()
+	id, err := s.Cli.Get(ctx, URLIDKEY).Int64()
 	if err != nil {
 		return "", utils.NewInternalServerError(err.Error())
 	}
 	eid := base62.Encode(int(id))
 
-	err = rc.Cli.Set(ctx, fmt.Sprintf(ShortlinkKey, eid), url, 0).Err()
+	err = s.Cli.Set(ctx, fmt.Sprintf(ShortlinkKey, eid), url, 0).Err()
 	if err != nil {
 		return "", utils.NewInternalServerError(err.Error())
 	}
 
-	err = rc.Cli.Set(ctx, fmt.Sprintf(URLHashKey, h), eid, 0).Err()
+	err = s.Cli.Set(ctx, fmt.Sprintf(URLHashKey, h), eid, 0).Err()
 	if err != nil {
 		return "", utils.NewInternalServerError(err.Error())
 	}
@@ -87,11 +79,9 @@ func (rc *RedisCli) Shorten(url string) (string, utils.RestErr) {
 	return eid, nil
 }
 
-func (rc *RedisCli) Unshorten(eid string) (string, utils.RestErr) {
-	log.Println("eid", eid)
+func (s *ShortlinkService) Unshorten(eid string) (string, utils.RestErr) {
 	ctx := context.Background()
-	url, err := rc.Cli.Get(ctx, fmt.Sprintf(ShortlinkKey, eid)).Result()
-	log.Println("url", url)
+	url, err := s.Cli.Get(ctx, fmt.Sprintf(ShortlinkKey, eid)).Result()
 	if err == redis.Nil {
 		return "", utils.NewNotFoundError("shortlink key not exist")
 	} else if err != nil {
