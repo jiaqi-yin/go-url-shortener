@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jiaqi-yin/go-url-shortener/config"
 	"github.com/jiaqi-yin/go-url-shortener/domain/shortlink"
@@ -18,7 +19,13 @@ type App struct {
 
 func (app *App) Init() {
 	app.Config = config.LoadConfig()
+
 	app.Router = gin.Default()
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:4200"}
+	config.AddAllowMethods("OPTIONS")
+	app.Router.Use(cors.New(config))
+
 	app.initializeRoutes()
 }
 

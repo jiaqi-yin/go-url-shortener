@@ -3,6 +3,7 @@ module github.com/jiaqi-yin/go-url-shortener
 go 1.16
 
 require (
+	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.2
 	github.com/go-redis/redis/v8 v8.11.0
 	github.com/pilu/go-base62 v0.0.0-20131214171223-d5f2747573ce
